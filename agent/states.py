@@ -45,6 +45,14 @@ class TaskPlan(BaseModel):
     )
 
 
+class ClarificationRequest(BaseModel):
+    """Model for requesting clarifications from the user."""
+    model_config = ConfigDict(extra="forbid")
+
+    questions: list[str] = Field(description="List of clarification questions to ask")
+    reason: str = Field(description="Why these clarifications are needed")
+
+
 class CoderState(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -62,3 +70,14 @@ class GraphState(TypedDict, total=False):
     coder_state: CoderState
     status: str
     messages: Annotated[list[BaseMessage], add_messages]
+    # Phase 2: Mode and permission support
+    mode: str  # "build" or "edit"
+    project_root: str  # Absolute path to project
+    permission_mode: str  # "strict" or "permissive"
+    # Phase 3: Edit instruction support
+    edit_instruction: Optional[str]  # User's edit request after review
+    # Phase 4: Clarification support
+    clarification_questions: Optional[list[str]]  # Questions asked
+    clarification_answers: Optional[list[str]]  # User responses
+    # Project discovery (edit mode)
+    project_context: Optional[str]  # Discovered project structure and key files
