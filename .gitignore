@@ -2,7 +2,7 @@
 __pycache__/
 *.py[oc]
 build/
-dist/
+dist/7
 wheels/
 *.egg-info
 

@@ -308,10 +308,19 @@ class TerminalUI:
     def welcome(self) -> None:
         """Display welcome message."""
         self.banner()
-        self.console.print("  [dim]Type your request or use commands:[/dim]")
-        self.console.print("  [dim]  /help  - Show help[/dim]")
-        self.console.print("  [dim]  /clear - Clear conversation[/dim]")
-        self.console.print("  /exit  - Exit", style="dim")
+        self.console.print()
+        self.console.print("  [bold cyan]Welcome! I can help you build software projects.[/bold cyan]")
+        self.console.print()
+        self.console.print("  [bold]Getting Started:[/bold]")
+        self.console.print("  [green]→[/green] First, choose whether to build a new project or edit an existing one")
+        self.console.print("  [green]→[/green] Then, describe what you want to build")
+        self.console.print("  [dim]    Example: 'a todo app' or 'a calculator with dark mode'[/dim]")
+        self.console.print()
+        self.console.print("  [bold]Tips:[/bold]")
+        self.console.print("  [green]→[/green] Mention tech stack preferences (optional)")
+        self.console.print("  [dim]    Example: 'using React' or 'with Python Flask'[/dim]")
+        self.console.print()
+        self.console.print("  [yellow]Commands:[/yellow] /new /help /status /exit")
         self.console.print()
 
 
