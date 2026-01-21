@@ -25,6 +25,7 @@ A Claude Code-style AI coding assistant built with LangGraph and OpenAI GPT-4o t
 
 ### Core Capabilities
 - **🏗️ Multi-Agent Architecture** - Specialized agents (Clarifier, Planner, Architect, Coder) orchestrated by LangGraph
+- **🤖 Multi-Provider Support** - Use OpenAI, Anthropic Claude, Google Gemini, Groq, or OpenRouter
 - **🎨 Beautiful Terminal UI** - Rich formatting with spinners, progress indicators, panels, and syntax highlighting
 - **⚡ Real-time Streaming** - Stream tokens as the AI thinks and writes code
 - **📺 Live Command Output** - Real-time buffered streaming of shell command output (npm install, builds, etc.)
@@ -53,7 +54,7 @@ A Claude Code-style AI coding assistant built with LangGraph and OpenAI GPT-4o t
 ### Prerequisites
 
 - Python 3.12+
-- OpenAI API key (for GPT-4o access)
+- API key for your chosen LLM provider
 
 ### Option 1: Install from PyPI (Recommended)
 
@@ -84,12 +85,69 @@ pip install -e .
 echo "OPENAI_API_KEY=sk-your-key-here" > .env
 ```
 
+## 🤖 Supported LLM Providers
+
+Coder Buddy supports multiple LLM providers. Set via environment variables:
+
+| Provider | Install Command | Environment Variables |
+|----------|----------------|----------------------|
+| **OpenAI** (default) | `pip install coder-buddy` | `OPENAI_API_KEY` |
+| **Anthropic Claude** | `pip install coder-buddy[anthropic]` | `ANTHROPIC_API_KEY`, `LLM_PROVIDER=anthropic` |
+| **Google Gemini** | `pip install coder-buddy[gemini]` | `GOOGLE_API_KEY`, `LLM_PROVIDER=gemini` |
+| **Groq** | `pip install coder-buddy[groq]` | `GROQ_API_KEY`, `LLM_PROVIDER=groq` |
+| **OpenRouter** | `pip install coder-buddy` | `OPENROUTER_API_KEY`, `LLM_PROVIDER=openrouter` |
+| **All providers** | `pip install coder-buddy[all]` | Set provider-specific keys |
+
+### Example: Using Claude
+
+```bash
+pip install coder-buddy[anthropic]
+export ANTHROPIC_API_KEY=sk-ant-your-key
+export LLM_PROVIDER=anthropic
+coder-buddy
+```
+
+### Example: Using Groq (Fast & Free)
+
+```bash
+pip install coder-buddy[groq]
+export GROQ_API_KEY=gsk-your-key
+export LLM_PROVIDER=groq
+coder-buddy
+```
+
+### Custom Model
+
+Override the default model with `LLM_MODEL`:
+
+```bash
+export LLM_PROVIDER=openai
+export LLM_MODEL=gpt-4-turbo
+coder-buddy
+```
+
 ## 📖 Usage
+
+### Quick Start
+
+```bash
+# Install
+pip install coder-buddy
+
+# Set your API key (choose one)
+export OPENAI_API_KEY=sk-your-key-here      # For OpenAI
+# OR
+export ANTHROPIC_API_KEY=sk-ant-your-key    # For Claude
+export LLM_PROVIDER=anthropic
+
+# Run
+coder-buddy
+```
 
 ### Interactive Mode (Build or Edit)
 
 ```bash
-uv run python main.py
+coder-buddy
 ```
 
 This starts the REPL with interactive mode selection:
@@ -101,6 +159,15 @@ What would you like to do?
 2) Edit an existing project - Modify existing code
 
 Choice [1-2]:
+```
+
+Then describe what you want to build:
+
+```
+What would you like to build?
+Describe your project (e.g., 'a todo app with React' or 'snake game in Python')
+
+>
 ```
 
 **Build Mode Examples:**
@@ -120,17 +187,17 @@ Choice [1-2]:
 ### Single Prompt Mode
 
 ```bash
-uv run python main.py --prompt "Create a calculator web app"
+coder-buddy --prompt "Create a calculator web app"
 ```
 
 ### CLI Options
 
 ```bash
-uv run python main.py --mode build              # Explicitly use build mode
-uv run python main.py --mode edit --root ./my-project  # Edit existing project
-uv run python main.py --permission strict       # Ask before dangerous operations
-uv run python main.py --permission permissive   # Allow all operations
-uv run python main.py --recursion-limit 150     # Set graph recursion limit
+coder-buddy --mode build              # Explicitly use build mode
+coder-buddy --mode edit --root ./my-project  # Edit existing project
+coder-buddy --permission strict       # Ask before dangerous operations
+coder-buddy --permission permissive   # Allow all operations
+coder-buddy --recursion-limit 150     # Set graph recursion limit
 ```
 
 ### Commands in REPL
