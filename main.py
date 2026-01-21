@@ -472,7 +472,7 @@ def select_mode_interactive() -> tuple[str, str]:
             ui.message("[dim]Defaulting to Build mode...[/dim]")
         else:
             ui.message("")
-            ui.success("Build mode selected - ready to create a new project!")
+            ui.success("Build mode selected!")
         return ("build", ".")
 
 
@@ -554,9 +554,22 @@ def repl(recursion_limit: int, mode: str = "build",
     # Track current project context for continuation
     current_result = None
     current_project_root = project_root
+    first_prompt = True  # Track if this is the first prompt after mode selection
 
     while True:
         try:
+            # Show a clearer prompt for the first request after mode selection
+            if first_prompt:
+                if mode == "build":
+                    ui.message("[bold]What would you like to build?[/bold]")
+                    ui.message("[dim]Describe your project (e.g., 'a todo app with React' or 'snake game in Python')[/dim]")
+                    ui.message("")
+                else:
+                    ui.message("[bold]What changes would you like to make?[/bold]")
+                    ui.message("[dim]Describe what you want to modify or add[/dim]")
+                    ui.message("")
+                first_prompt = False
+
             user_input = ui.prompt("[bold cyan]>[/bold cyan] ").strip()
 
             if not user_input:
@@ -572,6 +585,7 @@ def repl(recursion_limit: int, mode: str = "build",
                     mode, project_root = select_mode_interactive()
                     current_project_root = project_root
                     current_result = None
+                    first_prompt = True  # Reset to show the prompt again
                     ui.divider()
                     if mode == "edit":
                         ui.info(f"[bold]Edit Mode:[/bold] Modifying existing project at {project_root}")
@@ -614,6 +628,7 @@ def repl(recursion_limit: int, mode: str = "build",
                             mode, project_root = select_mode_interactive()
                             current_project_root = project_root
                             current_result = None
+                            first_prompt = True
                             ui.divider()
                         else:  # exit
                             ui.message("")
@@ -632,6 +647,7 @@ def repl(recursion_limit: int, mode: str = "build",
                         mode, project_root = select_mode_interactive()
                         current_project_root = project_root
                         current_result = None
+                        first_prompt = True
                         ui.divider()
 
                     else:  # exit

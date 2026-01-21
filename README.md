@@ -1,6 +1,12 @@
 # Coder Buddy - AI-Powered Coding Assistant
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red.svg)](https://github.com/garodisk/CodeBuddy)
+
 A Claude Code-style AI coding assistant built with LangGraph and OpenAI GPT-4o that transforms natural language prompts into complete, working projects. Supports both creating new projects from scratch and modifying existing codebases.
+
+**Open Source** - Free to use, modify, and distribute under the MIT License.
 
 ```
 +-----------------------------------------------------+
@@ -20,6 +26,7 @@ A Claude Code-style AI coding assistant built with LangGraph and OpenAI GPT-4o t
 - **🏗️ Multi-Agent Architecture** - Specialized agents (Clarifier, Planner, Architect, Coder) orchestrated by LangGraph
 - **🎨 Beautiful Terminal UI** - Rich formatting with spinners, progress indicators, panels, and syntax highlighting
 - **⚡ Real-time Streaming** - Stream tokens as the AI thinks and writes code
+- **📺 Live Command Output** - Real-time buffered streaming of shell command output (npm install, builds, etc.)
 - **🔄 Build & Edit Modes** - Create new projects from scratch OR modify existing codebases
 - **🔍 Smart Project Discovery** - Auto-detects project structure before planning modifications
 - **❓ Intelligent Clarification** - Asks clarifying questions for vague prompts
@@ -45,18 +52,32 @@ A Claude Code-style AI coding assistant built with LangGraph and OpenAI GPT-4o t
 ### Prerequisites
 
 - Python 3.12+
-- [uv](https://github.com/astral-sh/uv) package manager (recommended)
 - OpenAI API key (for GPT-4o access)
 
-### Setup
+### Option 1: Install from PyPI (Recommended)
+
+```bash
+pip install coder-buddy
+
+# Set your API key
+export OPENAI_API_KEY=sk-your-key-here
+
+# Run
+coder-buddy
+```
+
+### Option 2: Install from Source
 
 ```bash
 # Clone the repository
 git clone https://github.com/garodisk/CodeBuddy.git
 cd CodeBuddy
 
-# Install dependencies
+# Install with uv (recommended)
 uv sync
+
+# Or install with pip
+pip install -e .
 
 # Create .env file with your API key
 echo "OPENAI_API_KEY=sk-your-key-here" > .env
@@ -270,7 +291,7 @@ flowchart TD
 
 | Tool | Signature | Description |
 |------|-----------|-------------|
-| `run_cmd` | `(cmd: str, cwd: str?, timeout: int?) -> dict` | Run shell command with permission check |
+| `run_cmd` | `(cmd: str, cwd: str?, timeout: int?) -> dict` | Run shell command with real-time output streaming and permission check |
 
 ### Sandbox Protection
 

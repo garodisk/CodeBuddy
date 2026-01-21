@@ -1,9 +1,19 @@
 [project]
 name = "coder-buddy"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Claude Code-style AI coding assistant built with LangGraph and GPT-4o"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
+authors = [
+    {name = "Coder Buddy Team"}
+]
+keywords = ["ai", "coding", "assistant", "langgraph", "gpt-4o"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "groq>=0.31.0",
     "langchain>=0.3.27",
@@ -17,4 +27,15 @@ dependencies = [
     "rich>=14.0.0",
     "prompt-toolkit>=3.0.0",
 ]
+
+[project.scripts]
+coder-buddy = "main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent*"]
+exclude = ["random-greeting-html-page*", "todolistapp*", "docs*"]
+
+[tool.setuptools]
+py-modules = ["main"]
 

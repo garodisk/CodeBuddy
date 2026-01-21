@@ -5,7 +5,7 @@ from langchain_openai import ChatOpenAI
 
 def get_llm(temperature: float = 0.0, streaming: bool = True) -> ChatOpenAI:
     """Get configured LLM instance."""
-    model = os.getenv("CODER_BUDDY_MODEL", "gpt-4o")
+    model = os.getenv("CODER_BUDDY_MODEL", "gpt-5")
     return ChatOpenAI(
         model=model,
         temperature=temperature,

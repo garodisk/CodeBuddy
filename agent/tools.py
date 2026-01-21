@@ -289,7 +289,8 @@ def grep(pattern: str, path: str = ".", max_results: int = 50, ignore_case: bool
 
 @tool
 def run_cmd(cmd: str, cwd: Optional[str] = None, timeout: int = 30) -> dict:
-    """Runs a shell command in the specified directory and returns the result."""
+    """Runs a shell command with real-time output streaming."""
+    import time
     from agent.ui import ui
 
     # Check for dangerous commands in strict mode
@@ -304,8 +305,64 @@ def run_cmd(cmd: str, cwd: Optional[str] = None, timeout: int = 30) -> dict:
 
     root = get_project_root()
     cwd_dir = safe_path_for_project(cwd) if cwd else root
-    res = subprocess.run(
-        cmd, shell=True, cwd=str(cwd_dir),
-        capture_output=True, text=True, timeout=timeout
+
+    # Use Popen for real-time streaming
+    process = subprocess.Popen(
+        cmd,
+        shell=True,
+        cwd=str(cwd_dir),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,  # Line buffered
     )
-    return {"returncode": res.returncode, "stdout": res.stdout, "stderr": res.stderr}
+
+    stdout_lines = []
+    stderr_lines = []
+    start_time = time.time()
+
+    ui.message(f"[dim]$ {cmd}[/dim]")
+
+    try:
+        while True:
+            # Check timeout
+            if time.time() - start_time > timeout:
+                process.kill()
+                return {
+                    "returncode": -1,
+                    "stdout": "".join(stdout_lines),
+                    "stderr": "ERROR: Command timed out"
+                }
+
+            # Read stdout line by line
+            line = process.stdout.readline()
+            if line:
+                ui.stream_text(line)
+                stdout_lines.append(line)
+                continue
+
+            # Check if process has finished
+            if process.poll() is not None:
+                break
+
+        # Read any remaining output
+        remaining_stdout, remaining_stderr = process.communicate(timeout=1)
+        if remaining_stdout:
+            ui.stream_text(remaining_stdout)
+            stdout_lines.append(remaining_stdout)
+        if remaining_stderr:
+            stderr_lines.append(remaining_stderr)
+
+    except subprocess.TimeoutExpired:
+        process.kill()
+        return {
+            "returncode": -1,
+            "stdout": "".join(stdout_lines),
+            "stderr": "ERROR: Command timed out"
+        }
+
+    return {
+        "returncode": process.returncode,
+        "stdout": "".join(stdout_lines),
+        "stderr": "".join(stderr_lines)
+    }
