@@ -1,18 +1,23 @@
 [project]
 name = "coder-buddy"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Claude Code-style AI coding assistant built with LangGraph and GPT-4o"
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
 authors = [
-    {name = "Coder Buddy Team"}
+    {name = "Saket Garodia", email = "saketgarodia1@gmail.com"}
 ]
-keywords = ["ai", "coding", "assistant", "langgraph", "gpt-4o"]
+maintainers = [
+    {name = "Saket Garodia", email = "saketgarodia1@gmail.com"}
+]
+keywords = ["ai", "coding", "assistant", "langgraph", "gpt-4o", "cli", "terminal"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3.12",
+    "Environment :: Console",
+    "Topic :: Software Development :: Code Generators",
 ]
 dependencies = [
     "groq>=0.31.0",
@@ -28,6 +33,12 @@ dependencies = [
     "prompt-toolkit>=3.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/garodisk/Coder-buddy-claude"
+Repository = "https://github.com/garodisk/Coder-buddy-claude"
+Documentation = "https://github.com/garodisk/Coder-buddy-claude#readme"
+"Bug Tracker" = "https://github.com/garodisk/Coder-buddy-claude/issues"
+
 [project.scripts]
 coder-buddy = "main:main"
 
@@ -38,4 +49,3 @@ exclude = ["random-greeting-html-page*", "todolistapp*", "docs*"]
 
 [tool.setuptools]
 py-modules = ["main"]
-
