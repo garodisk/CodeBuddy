@@ -1,6 +1,6 @@
 [project]
 name = "coder-buddy"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Claude Code-style AI coding assistant built with LangGraph and GPT-4o"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -34,10 +34,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/garodisk/Coder-buddy-claude"
-Repository = "https://github.com/garodisk/Coder-buddy-claude"
-Documentation = "https://github.com/garodisk/Coder-buddy-claude#readme"
-"Bug Tracker" = "https://github.com/garodisk/Coder-buddy-claude/issues"
+Homepage = "https://github.com/garodisk/CodeBuddy"
+Repository = "https://github.com/garodisk/CodeBuddy"
+Documentation = "https://github.com/garodisk/CodeBuddy#readme"
+"Bug Tracker" = "https://github.com/garodisk/CodeBuddy/issues"
 
 [project.scripts]
 coder-buddy = "main:main"
