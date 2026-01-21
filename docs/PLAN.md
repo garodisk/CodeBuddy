@@ -21,7 +21,7 @@ Coder Buddy has evolved from a basic three-agent pipeline to a comprehensive AI 
 
 ## Phase 1: Beautiful Terminal UI ✅ COMPLETE
 
-**Goal**: Rich, Claude Code-style terminal interface
+**Goal**: Rich, professional-style terminal interface
 **Status**: ✅ Completed
 
 ### Implemented Features

@@ -22,11 +22,11 @@ _ = load_dotenv()
 set_debug(False)  # Disable debug for cleaner output
 set_verbose(False)
 
-llm = ChatOpenAI(
-    model="gpt-4o",  # or gpt-5.1 / gpt-5
-    temperature=0,
-    streaming=True,  # Enable streaming
-)
+# Maximum characters of existing file content to include in coder prompt
+MAX_EXISTING_CONTENT = 6000
+
+# Import centralized LLM config
+from agent.llm import llm
 
 # Include all tools for the coder agent
 coder_tools = [
@@ -144,7 +144,8 @@ def discover_project(state: GraphState) -> GraphState:
                 pass
 
     # Combine all context
-    full_context = "\n\n" + "="*50 + "\n\n".join(context_parts)
+    sep = "\n\n" + "=" * 50 + "\n\n"
+    full_context = "PROJECT DISCOVERY CONTEXT" + sep + sep.join(context_parts)
 
     ui.message("")
     ui.success(f"Project discovery complete! Found {len(context_parts)} key items.")
@@ -338,18 +339,43 @@ def coder_agent(state: GraphState) -> GraphState:
         HumanMessage(content=f"Original request:\n{state['user_prompt']}"),
     ]
 
-    # Read existing content
+    # Read existing content with truncation to prevent token overflow
     existing_content = read_file.run(current_task.filepath)
     if existing_content:
         ui.info(f"Reading existing file: {current_task.filepath}")
+        if len(existing_content) > MAX_EXISTING_CONTENT:
+            existing_snippet = existing_content[:MAX_EXISTING_CONTENT]
+            truncated_note = "\n\n[NOTE: File content truncated. Use read_file() to see more.]"
+        else:
+            existing_snippet = existing_content
+            truncated_note = ""
+        existing_section = f"Existing content:\n{existing_snippet}{truncated_note}\n\n"
+    else:
+        # In edit mode, instruct to use read_file; in build mode, it's a new file
+        if mode == "edit":
+            existing_section = "File does not exist yet or is empty. Use read_file() if you need to check.\n\n"
+        else:
+            existing_section = ""
+
+    # Mode-aware save guidance
+    if mode == "edit":
+        save_guidance = (
+            "Prefer edit_file(path, old_str, new_str) for targeted changes to existing files.\n"
+            "Use write_file(path, content) only for new files or complete rewrites."
+        )
+    else:
+        save_guidance = (
+            "Use write_file(path, content) to save full file content.\n"
+            "Use edit_file() only for small follow-up changes to files you just created."
+        )
 
     step_prompt = (
         f"Original request:\n{state['user_prompt']}\n\n"
         f"Current task:\n{current_task.task_description}\n"
         f"File: {current_task.filepath}\n\n"
-        f"Existing content:\n{existing_content}\n\n"
+        f"{existing_section}"
         "Before writing, read any related files to keep selectors/functions consistent.\n"
-        "Use write_file(path, content) to save changes."
+        f"{save_guidance}"
     )
 
     messages_in = messages + [HumanMessage(content=step_prompt)]

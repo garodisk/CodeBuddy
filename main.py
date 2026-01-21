@@ -63,7 +63,7 @@ def chat_about_project(plan, task_plan, project_root: str) -> str:
     """
     Chat with LLM about the project. Returns action: 'continue', 'new', or 'exit'.
     """
-    from langchain_openai import ChatOpenAI
+    from agent.llm import chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
     # Build project context for the chat
@@ -84,7 +84,7 @@ Answer questions about the project, explain how things work, suggest improvement
 Keep responses concise but helpful.
 """
 
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.7, streaming=True)
+    llm = chat_llm
     messages = [SystemMessage(content=context)]
 
     ui.divider()
@@ -191,8 +191,22 @@ def show_run_instructions(plan, project_root: str, mode: str) -> None:
     else:
         actual_root = project_root
 
+    # HTML/CSS/JS (static) - check FIRST before Node.js to avoid false matches
+    # A project with "HTML, CSS, JavaScript" is static, not Node.js
+    is_static_html = any(x in tech_stack for x in ["html", "css", "vanilla"])
+    is_node_project = any(x in tech_stack for x in ["node", "react", "next", "express", "typescript"])
+
+    if is_static_html and not is_node_project:
+        import platform
+        if platform.system() == "Windows":
+            run_commands = ["start index.html"]
+        elif platform.system() == "Darwin":  # macOS
+            run_commands = ["open index.html"]
+        else:  # Linux
+            run_commands = ["xdg-open index.html"]
+
     # Node.js / React / Next.js
-    if any(x in tech_stack for x in ["node", "react", "next", "express", "javascript", "typescript"]):
+    elif is_node_project or ("javascript" in tech_stack and not is_static_html):
         install_commands = ["npm install"]
         if "react" in tech_stack or "next" in tech_stack:
             run_commands = ["npm start", "npm run dev"]
@@ -210,16 +224,6 @@ def show_run_instructions(plan, project_root: str, mode: str) -> None:
             run_commands = ["uvicorn main:app --reload"]
         else:
             run_commands = ["python main.py", "python app.py"]
-
-    # HTML/CSS/JS (static) - detect OS for correct command
-    elif any(x in tech_stack for x in ["html", "css", "vanilla"]):
-        import platform
-        if platform.system() == "Windows":
-            run_commands = ["start index.html"]
-        elif platform.system() == "Darwin":  # macOS
-            run_commands = ["open index.html"]
-        else:  # Linux
-            run_commands = ["xdg-open index.html"]
 
     # Go
     elif "go" in tech_stack:
@@ -265,11 +269,7 @@ def show_run_instructions(plan, project_root: str, mode: str) -> None:
         step_num += 1
 
     if run_commands:
-        is_static = any(x in tech_stack for x in ["html", "css", "vanilla"]) and not any(
-            x in tech_stack for x in ["node", "react", "python", "flask", "django"]
-        )
-
-        if is_static:
+        if is_static_html and not is_node_project:
             ui.message(f"[yellow]{step_num}.[/yellow] [bold]Open in Browser:[/bold]")
             ui.message(f"   [dim]Double-click the file or run:[/dim]")
             ui.message(f"   [green]{run_commands[0]}[/green]")
@@ -298,12 +298,7 @@ def show_run_instructions(plan, project_root: str, mode: str) -> None:
         ui.divider()
         ui.message("")
 
-        # Reuse is_static from above (for static HTML projects)
-        is_static_project = any(x in tech_stack for x in ["html", "css", "vanilla"]) and not any(
-            x in tech_stack for x in ["node", "react", "python", "flask", "django"]
-        )
-
-        if is_static_project:
+        if is_static_html and not is_node_project:
             if ui.confirm("[bold cyan]Would you like me to open the project in your browser?[/bold cyan]"):
                 ui.message("")
                 original_dir = os.getcwd()

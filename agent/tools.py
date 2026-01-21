@@ -24,6 +24,13 @@ DANGEROUS_PATTERNS = [
     r":(){ :|:& };:",  # fork bomb
     r">\s*/dev/sd",
     r"mv.*\s+/dev/null",
+    # Additional patterns for git and other dangerous commands
+    r"git\s+reset\s+--hard",
+    r"git\s+clean\s+-[a-z]*f",   # matches -f, -fd, -fdx, etc.
+    r"chmod\s+-R",
+    r"rm\s+-r\b",                 # rm -r without -f (still dangerous)
+    r"(?i)powershell.*invoke-expression",
+    r"(?i)powershell.*iex\s",
 ]
 
 
@@ -69,10 +76,11 @@ def is_dangerous_command(cmd: str) -> bool:
 
 def safe_path_for_project(path: str) -> pathlib.Path:
     """Resolve a path safely within the project root."""
-    root = get_project_root()
+    root = get_project_root().resolve()
     p = (root / path).resolve()
-    if root.resolve() not in p.parents and root.resolve() != p.parent and root.resolve() != p:
-        raise ValueError("Attempt to write outside project root")
+    # Strict check: p must be root itself or have root as ancestor
+    if root != p and root not in p.parents:
+        raise ValueError("Attempt to access outside project root")
     return p
 
 
@@ -92,6 +100,10 @@ def write_file(path: str, content: str, confirm_overwrite: bool = True) -> str:
     from agent.ui import ui
 
     p = safe_path_for_project(path)
+
+    # Check if path is a directory
+    if p.exists() and p.is_dir():
+        return f"ERROR: {path} is a directory, cannot write"
 
     # Check if file exists and ask for confirmation in strict mode
     if _permission_mode == "strict" and confirm_overwrite and p.exists():

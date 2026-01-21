@@ -1,6 +1,6 @@
 # Coder Buddy - AI-Powered Coding Assistant
 
-An intelligent AI coding assistant built with LangGraph and Claude that transforms natural language prompts into complete, working projects. Supports both creating new projects from scratch and modifying existing codebases.
+A Claude Code-style AI coding assistant built with LangGraph and OpenAI GPT-4o that transforms natural language prompts into complete, working projects. Supports both creating new projects from scratch and modifying existing codebases.
 
 ```
 +-----------------------------------------------------+
@@ -132,99 +132,118 @@ uv run python main.py --recursion-limit 150     # Set graph recursion limit
 
 ## 🏗️ Architecture
 
-### Enhanced Multi-Agent Pipeline
+### LangGraph Multi-Agent Flow
 
-```
-                    ┌─────────────────────┐
-                    │   User Prompt       │
-                    └──────────┬──────────┘
-                              │
-                    ┌─────────▼──────────┐
-                    │  CLARIFIER AGENT   │
-                    │                    │
-                    │ Detects vague      │
-                    │ prompts and asks   │
-                    │ clarification Q&A  │
-                    └─────────┬──────────┘
-                              │
-                    ┌─────────▼──────────┐
-                    │ PROJECT DISCOVERY  │
-                    │                    │
-                    │ (Edit mode only)   │
-                    │ Reads project      │
-                    │ structure & files  │
-                    └─────────┬──────────┘
-                              │
-                    ┌─────────▼──────────┐
-                    │ PLANNER AGENT      │
-                    │                    │
-                    │ Creates detailed   │
-                    │ project plan       │
-                    └─────────┬──────────┘
-                              │
-                    ┌─────────▼──────────────────┐
-                    │ PLANNER CONFIRMATION      │
-                    │                           │
-                    │ 1) Proceed ✓              │
-                    │ 2) Edit plan ✎            │
-                    │ 3) Cancel ✗               │
-                    └─────────┬──────────────────┘
-                              │
-                    ┌─────────▼──────────┐
-                    │ ARCHITECT AGENT    │
-                    │                    │
-                    │ Breaks down plan   │
-                    │ into tasks per     │
-                    │ file (ONE per file)│
-                    └─────────┬──────────┘
-                              │
-                    ┌─────────▼──────────────────┐
-                    │ ARCHITECT CONFIRMATION    │
-                    │                           │
-                    │ 1) Start building ✓       │
-                    │ 2) Modify tasks ✎         │
-                    │ 3) Cancel ✗               │
-                    └─────────┬──────────────────┘
-                              │
-                    ┌─────────▼──────────┐
-                    │ CODER AGENT (Loop) │
-                    │                    │
-                    │ Implements each    │
-                    │ task using tools   │
-                    │ (read/edit/write)  │
-                    └─────────┬──────────┘
-                              │
-                    ┌─────────▼──────────┐
-                    │  Complete? Loop?   │
-                    └─────────┬──────────┘
-                              │
-                ┌─────────────┼─────────────┐
-                │             │             │
-      ┌─────────▼────┐  ┌─────▼─────┐  ┌──▼──────────────┐
-      │ Chat Mode    │  │ Continue  │  │ Exit / New      │
-      │ 💬          │  │ 🔧       │  │ 👋             │
-      └──────────────┘  └───────────┘  └─────────────────┘
+```mermaid
+graph TD
+    A[User Input] --> B[Clarifier Agent]
+    B --> C{Vague Prompt?}
+    C -->|Yes| D[Ask Clarifications]
+    C -->|No| E[Project Discovery]
+    D --> E
+
+    E --> F[Planner Agent]
+    F --> G{User Confirms Plan?}
+    G -->|Edit| F
+    G -->|Cancel| END1[End]
+    G -->|Proceed| H[Architect Agent]
+
+    H --> I{User Confirms Tasks?}
+    I -->|Edit| H
+    I -->|Cancel| END2[End]
+    I -->|Proceed| J[Coder Agent]
+
+    J --> K[Tools]
+    K --> L{More Tasks?}
+    L -->|Yes| J
+    L -->|No| M[Complete]
+
+    M --> N{What's Next?}
+    N -->|Chat| O[Chat Mode]
+    N -->|Continue| F
+    N -->|New| A
+    N -->|Exit| END3[End]
+
+    O --> N
 ```
 
-### Graph Flow with Confirmations
+### Detailed Agent Pipeline
 
+```mermaid
+flowchart TD
+    subgraph INPUT["🎯 USER INPUT"]
+        A[User Prompt]
+    end
+
+    subgraph CLARIFIER["🔍 CLARIFIER AGENT"]
+        B{Vague prompt?}
+        C[💬 Ask Questions<br>max 3 Q&A]
+    end
+
+    subgraph DISCOVERY["📁 PROJECT DISCOVERY"]
+        D["Edit Mode Only:<br>• Read directory tree<br>• Find README<br>• Parse dependencies<br>• Read main files"]
+    end
+
+    subgraph PLANNING["🔄 PLANNING LOOP"]
+        E["📋 PLANNER AGENT<br>• Name & description<br>• Tech stack<br>• Features list<br>• Files to create"]
+        F{"👤 CONFIRM?"}
+    end
+
+    subgraph ARCHITECTURE["🔄 ARCHITECTURE LOOP"]
+        G["🏗️ ARCHITECT AGENT<br>• Break into tasks<br>• ONE task per file<br>• Order by deps"]
+        H{"👤 CONFIRM?"}
+    end
+
+    subgraph IMPLEMENTATION["🔄 IMPLEMENTATION LOOP"]
+        I["💻 CODER AGENT"]
+        I1["🛠️ Tools:<br>read_file | write_file | edit_file<br>glob_files | grep | list_files | run_cmd"]
+        K["📄 Files Created/Modified"]
+    end
+
+    subgraph COMPLETE["✅ COMPLETE"]
+        L[Project Ready!]
+        M{"What's next?"}
+    end
+
+    A --> B
+    B -->|YES| C
+    B -->|NO| D
+    C --> D
+    D --> E
+    E --> F
+    F -->|Proceed| G
+    F -->|Edit| E
+    F -->|Cancel| END1[END]
+    G --> H
+    H -->|Start| I
+    H -->|Modify| G
+    H -->|Cancel| END2[END]
+    I --> I1
+    I1 --> K
+    K -->|loop| I
+    K -->|done| L
+    L --> M
+    M -->|Continue| E
+    M -->|New| A
+
+    style INPUT fill:#e1f5fe
+    style CLARIFIER fill:#fff3e0
+    style DISCOVERY fill:#f3e5f5
+    style PLANNING fill:#e8f5e9
+    style ARCHITECTURE fill:#fff8e1
+    style IMPLEMENTATION fill:#fce4ec
+    style COMPLETE fill:#c8e6c9
 ```
-clarifier → discover → planner → planner_confirm ─┬─→ architect
-                                                     ↓ (edit)
-                                              planner (replan)
 
-architect_confirm ─┬─→ coder ←─┐
-                   │            │
-                   ↓ (edit)    (loop)
-                architect
-                (re-architect)
+### Key Design Principles
 
-coder → complete → post_completion_menu
-                    ├→ chat_about_project
-                    ├→ continue_editing (switch to edit mode)
-                    ├→ new_project (restart mode selection)
-                    └→ exit
-```
+| Principle | Description |
+|-----------|-------------|
+| 🔄 **Human-in-the-Loop** | User confirms/edits at every major step |
+| 📁 **ONE Task Per File** | Architect creates exactly one task per file |
+| 🔍 **Discovery Before Planning** | Edit mode reads project structure first |
+| 🛡️ **Sandboxed Execution** | All file ops confined to project root |
+| ⚠️ **Dangerous Command Blocking** | Blocks rm -rf, sudo, etc. in strict mode |
 
 ---
 
@@ -739,7 +758,6 @@ MIT
 - [LangChain](https://github.com/langchain-ai/langchain) - LLM framework
 - [Rich](https://rich.readthedocs.io/) - Beautiful terminal formatting
 - [OpenAI](https://openai.com/) - GPT-4o API
-- [Claude Code](https://claude.com/claude-code) - Inspiration
 
 ---
 
@@ -751,4 +769,4 @@ MIT
 
 ---
 
-**Made with ❤️ by the Coder Buddy team**
+**Built with LangGraph + GPT-4o by the Coder Buddy team**

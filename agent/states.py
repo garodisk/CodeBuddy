@@ -27,13 +27,13 @@ class Plan(BaseModel):
     description: str = Field(description="A one-line description of the app")
     techstack: str = Field(description="The tech stack to be used")
     features: list[str] = Field(description="A list of features")
-    files: list[File] = Field(description="A list of files to be created")
+    files: list[File] = Field(description="A list of files to be created or modified")
 
 
 class ImplementationTask(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    filepath: str = Field(description="The path to the file to be modified")
+    filepath: str = Field(description="The path to the file to be created or modified")
     task_description: str = Field(description="A detailed description of the task")
 
 
