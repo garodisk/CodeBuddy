@@ -1,8 +1,9 @@
 # Coder Buddy - AI-Powered Coding Assistant
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red.svg)](https://github.com/garodisk/CodeBuddy)
+[![PyPI version](https://img.shields.io/pypi/v/coder-buddy.svg)](https://pypi.org/project/coder-buddy/)
+[![Python versions](https://img.shields.io/pypi/pyversions/coder-buddy.svg)](https://pypi.org/project/coder-buddy/)
+[![License](https://img.shields.io/pypi/l/coder-buddy.svg)](https://pypi.org/project/coder-buddy/)
+[![Downloads](https://img.shields.io/pypi/dm/coder-buddy.svg)](https://pypi.org/project/coder-buddy/)
 
 A Claude Code-style AI coding assistant built with LangGraph and OpenAI GPT-4o that transforms natural language prompts into complete, working projects. Supports both creating new projects from scratch and modifying existing codebases.
 
