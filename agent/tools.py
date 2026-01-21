@@ -1,3 +1,5 @@
+import datetime
+import json
 import pathlib
 import re
 import subprocess
@@ -82,6 +84,109 @@ def safe_path_for_project(path: str) -> pathlib.Path:
     if root != p and root not in p.parents:
         raise ValueError("Attempt to access outside project root")
     return p
+
+
+# ============ MEMORY HELPERS ============
+
+CODERBUDDY_DIR = ".coderbuddy"
+MAX_DECISIONS_CHARS = 4000
+MAX_CONTEXT_CHARS = 4000
+
+
+def get_memory_dir() -> pathlib.Path:
+    """Get .coderbuddy memory directory, creating if needed."""
+    root = get_project_root()
+    memory_dir = root / CODERBUDDY_DIR
+    memory_dir.mkdir(exist_ok=True)
+    return memory_dir
+
+
+def save_json(filename: str, data: dict) -> str:
+    """Save JSON to .coderbuddy folder."""
+    path = get_memory_dir() / filename
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+    return str(path)
+
+
+def load_json(filename: str) -> dict | None:
+    """Load JSON from .coderbuddy folder, None if not exists."""
+    try:
+        path = get_memory_dir() / filename
+        if path.exists():
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return None
+
+
+def save_progress(current_step_idx: int, completed_filepaths: list[str]) -> None:
+    """Update progress.json after each task."""
+    save_json("progress.json", {
+        "current_step_idx": current_step_idx,
+        "completed_filepaths": completed_filepaths,
+        "timestamp": datetime.datetime.now().isoformat()
+    })
+
+
+def load_progress() -> dict | None:
+    """Load progress.json for resume capability."""
+    return load_json("progress.json")
+
+
+def init_decisions_md() -> None:
+    """Initialize decisions.md if not exists."""
+    path = get_memory_dir() / "decisions.md"
+    if not path.exists():
+        path.write_text(
+            "# Project Decisions & Constraints\n\n"
+            "Key architectural decisions tracked by Coder Buddy.\n\n---\n\n",
+            encoding="utf-8"
+        )
+
+
+def read_decisions_md(max_chars: int = MAX_DECISIONS_CHARS) -> str:
+    """Read decisions.md, truncated to max_chars."""
+    try:
+        path = get_memory_dir() / "decisions.md"
+        if path.exists():
+            content = path.read_text(encoding="utf-8")
+            if len(content) > max_chars:
+                return content[:max_chars] + "\n[... truncated ...]"
+            return content
+    except Exception:
+        pass
+    return ""
+
+
+def append_decision(decision: str) -> None:
+    """Append decision to decisions.md, keeping under ~200 lines."""
+    path = get_memory_dir() / "decisions.md"
+    if not path.exists():
+        init_decisions_md()
+
+    lines = path.read_text(encoding="utf-8").splitlines()
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    lines.append(f"- [{timestamp}] {decision}")
+
+    # Keep under 200 lines
+    if len(lines) > 200:
+        header = lines[:8]
+        recent = lines[-(200 - len(header) - 1):]
+        lines = header + ["", "... (older entries trimmed) ..."] + recent
+
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def truncate_text(text: str, max_chars: int = MAX_CONTEXT_CHARS) -> str:
+    """Truncate text to max_chars."""
+    if text and len(text) > max_chars:
+        return text[:max_chars] + "\n[... truncated ...]"
+    return text or ""
+
+
+# ============ END MEMORY HELPERS ============
 
 
 @tool

@@ -11,7 +11,7 @@ def get_provider() -> str:
 def get_model_for_provider(provider: str) -> str:
     """Get the default model for a provider."""
     defaults = {
-        "openai": "gpt-4o",
+        "openai": "gpt-5",
         "anthropic": "claude-sonnet-4-20250514",
         "gemini": "gemini-1.5-pro",
         "groq": "llama-3.3-70b-versatile",

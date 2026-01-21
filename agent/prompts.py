@@ -9,7 +9,8 @@ DISCOVERED PROJECT CONTEXT:
 
 IMPORTANT:
 - This is an EDIT mode - do NOT plan to create a new project from scratch
-- Use the ACTUAL file paths from the discovered project structure above
+- Use RELATIVE file paths (e.g., "index.html" NOT "project-name/index.html")
+- NEVER include the project directory name in file paths
 - Reference SPECIFIC files that exist in the project
 - If a file doesn't exist in the structure above, don't assume it exists
 - Focus on modifying what ACTUALLY exists
@@ -60,11 +61,13 @@ DISCOVERED PROJECT CONTEXT:
 CRITICAL RULES:
 - Create EXACTLY ONE task per file - do NOT split a file into multiple tasks
 - Each file should be fully modified in a single task
-- Use ACTUAL file paths from the project structure above
+- Use RELATIVE file paths (e.g., "index.html" NOT "project-name/index.html")
+- NEVER include the project directory name in file paths
 - Reference SPECIFIC files that exist - don't make up file paths
 - For each task, describe ALL changes needed for that file in one comprehensive description
 - Prefer edit_file() for modifying existing files
 - Order tasks so dependencies are handled first
+- Do NOT create tasks for .coderbuddy/ files - those are managed automatically
 
 WRONG (multiple tasks for same file):
   Task 1: models/User.js - Add email field

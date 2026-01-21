@@ -61,6 +61,8 @@ class CoderState(BaseModel):
     current_file_content: Optional[str] = Field(
         None, description="Content of the file currently being edited"
     )
+    # Track completed files for progress/checklist
+    completed_filepaths: list[str] = Field(default_factory=list)
 
 
 class GraphState(TypedDict, total=False):
@@ -69,7 +71,7 @@ class GraphState(TypedDict, total=False):
     task_plan: TaskPlan
     coder_state: CoderState
     status: str
-    messages: Annotated[list[BaseMessage], add_messages]
+    messages: Annotated[list[BaseMessage], add_messages]  # Kept for compatibility
     # Phase 2: Mode and permission support
     mode: str  # "build" or "edit"
     project_root: str  # Absolute path to project
@@ -81,3 +83,5 @@ class GraphState(TypedDict, total=False):
     clarification_answers: Optional[list[str]]  # User responses
     # Project discovery (edit mode)
     project_context: Optional[str]  # Discovered project structure and key files
+    # Resume support
+    resume_from_idx: Optional[int]  # Step index to resume from

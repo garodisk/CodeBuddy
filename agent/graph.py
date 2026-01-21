@@ -292,15 +292,37 @@ def architect_agent(state: GraphState) -> GraphState:
 
 
 def coder_agent(state: GraphState) -> GraphState:
+    """Execute task with fresh messages (no accumulation)."""
+    from agent.tools import (
+        read_decisions_md, save_progress, truncate_text, load_progress
+    )
+
     coder_state: CoderState | None = state.get("coder_state")
     mode = state.get("mode", "build")
 
+    # Initialize coder state
     if coder_state is None:
-        coder_state = CoderState(task_plan=state["task_plan"], current_step_idx=0)
+        task_plan = state["task_plan"]
+        resume_idx = state.get("resume_from_idx")
+
+        if resume_idx is not None:
+            progress = load_progress()
+            completed = progress.get("completed_filepaths", []) if progress else []
+            start_idx = resume_idx
+        else:
+            start_idx = 0
+            completed = []
+
+        coder_state = CoderState(
+            task_plan=task_plan,
+            current_step_idx=start_idx,
+            completed_filepaths=completed
+        )
 
     steps = coder_state.task_plan.implementation_steps
     total_steps = len(steps)
 
+    # Check completion
     if coder_state.current_step_idx >= total_steps:
         # Show project summary
         ui.divider()
@@ -333,13 +355,30 @@ def coder_agent(state: GraphState) -> GraphState:
     ui.divider()
     ui.message(f"[bold cyan]Step {current_idx + 1}/{total_steps}:[/bold cyan] {current_task.filepath}")
 
-    # Persistent messages stored in GraphState
-    messages = state.get("messages") or [
-        SystemMessage(content=coder_system_prompt(mode=mode)),
-        HumanMessage(content=f"Original request:\n{state['user_prompt']}"),
-    ]
+    # ===== BUILD FRESH MESSAGES (KEY CHANGE) =====
 
-    # Read existing content with truncation to prevent token overflow
+    # 1. System prompt
+    system_msg = SystemMessage(content=coder_system_prompt(mode=mode))
+
+    # 2. Original request
+    request_msg = HumanMessage(content=f"Original request:\n{state['user_prompt']}")
+
+    # 3. Repo memory (decisions.md) - truncated
+    decisions = read_decisions_md()
+    decisions_msg = SystemMessage(content=f"PROJECT DECISIONS:\n{decisions}") if decisions else None
+
+    # 4. Completed checklist
+    if coder_state.completed_filepaths:
+        checklist = "\n".join([f"  [Done] {fp}" for fp in coder_state.completed_filepaths])
+        checklist_msg = SystemMessage(content=f"COMPLETED TASKS:\n{checklist}")
+    else:
+        checklist_msg = SystemMessage(content=f"Starting fresh. Total: {total_steps} tasks")
+
+    # 5. Project context (edit mode)
+    context = state.get("project_context")
+    context_msg = SystemMessage(content=f"PROJECT CONTEXT:\n{truncate_text(context)}") if context else None
+
+    # 6. Existing file content
     existing_content = read_file.run(current_task.filepath)
     if existing_content:
         ui.info(f"Reading existing file: {current_task.filepath}")
@@ -351,7 +390,6 @@ def coder_agent(state: GraphState) -> GraphState:
             truncated_note = ""
         existing_section = f"Existing content:\n{existing_snippet}{truncated_note}\n\n"
     else:
-        # In edit mode, instruct to use read_file; in build mode, it's a new file
         if mode == "edit":
             existing_section = "File does not exist yet or is empty. Use read_file() if you need to check.\n\n"
         else:
@@ -369,20 +407,28 @@ def coder_agent(state: GraphState) -> GraphState:
             "Use edit_file() only for small follow-up changes to files you just created."
         )
 
+    # 7. Current task prompt
     step_prompt = (
-        f"Original request:\n{state['user_prompt']}\n\n"
-        f"Current task:\n{current_task.task_description}\n"
+        f"CURRENT TASK ({current_idx + 1}/{total_steps}):\n"
+        f"Task: {current_task.task_description}\n"
         f"File: {current_task.filepath}\n\n"
         f"{existing_section}"
         "Before writing, read any related files to keep selectors/functions consistent.\n"
         f"{save_guidance}"
     )
+    task_msg = HumanMessage(content=step_prompt)
 
-    messages_in = messages + [HumanMessage(content=step_prompt)]
+    # Assemble fresh messages
+    messages_in = [system_msg, request_msg]
+    if decisions_msg:
+        messages_in.append(decisions_msg)
+    messages_in.append(checklist_msg)
+    if context_msg:
+        messages_in.append(context_msg)
+    messages_in.append(task_msg)
 
-    # Stream the agent's response
+    # ===== EXECUTE (streaming logic) =====
     ui.message("[dim]Thinking...[/dim]")
-    updated_messages = list(messages_in)
     current_text = ""
 
     for chunk in react_agent.stream({"messages": messages_in}):
@@ -424,14 +470,7 @@ def coder_agent(state: GraphState) -> GraphState:
                             else:
                                 ui.info(f"Tool: {tool_name}")
 
-                    updated_messages.append(msg)
-
-        elif "tools" in chunk:
-            # Tool results
-            tool_messages = chunk["tools"].get("messages", [])
-            for msg in tool_messages:
-                if isinstance(msg, ToolMessage):
-                    updated_messages.append(msg)
+        # NOTE: We do NOT collect tool messages for persistence
 
     if current_text:
         ui.stream_end()
@@ -439,8 +478,19 @@ def coder_agent(state: GraphState) -> GraphState:
     # Show what was written
     ui.success(f"Completed: {current_task.filepath}")
 
+    # ===== UPDATE STATE =====
+    new_completed = coder_state.completed_filepaths + [current_task.filepath]
     coder_state.current_step_idx += 1
-    return {"coder_state": coder_state, "messages": updated_messages}
+    coder_state.completed_filepaths = new_completed
+
+    # Save progress
+    try:
+        save_progress(coder_state.current_step_idx, new_completed)
+    except Exception:
+        pass
+
+    # IMPORTANT: Do NOT return messages - they are built fresh each task
+    return {"coder_state": coder_state}
 
 
 def clarifier_agent(state: GraphState) -> GraphState:
@@ -556,6 +606,15 @@ def planner_confirm_node(state: GraphState) -> GraphState:
     choice = ui.prompt("[bold cyan]Your choice [1-3]:[/bold cyan] ").strip()
 
     if choice == "1":
+        # Save plan.json when proceeding
+        plan = state.get("plan")
+        if plan:
+            from agent.tools import save_json
+            try:
+                save_json("plan.json", plan.model_dump())
+                ui.info("Saved plan to .coderbuddy/plan.json")
+            except Exception as e:
+                ui.warning(f"Could not save plan: {e}")
         return {"status": "PLANNING"}
     elif choice == "2":
         ui.message("")
@@ -591,6 +650,40 @@ def architect_confirm_node(state: GraphState) -> GraphState:
     choice = ui.prompt("[bold cyan]Your choice [1-3]:[/bold cyan] ").strip()
 
     if choice == "1":
+        # Save task_plan.json and initialize decisions.md
+        task_plan = state.get("task_plan")
+        mode = state.get("mode", "build")
+        if task_plan:
+            from agent.tools import save_json, init_decisions_md, load_progress, load_json, save_progress
+            try:
+                # In edit mode: always start fresh (overwrite .coderbuddy)
+                # In build mode: offer resume only if same task plan and work remaining
+                if mode == "build":
+                    old_task_plan = load_json("task_plan.json")
+                    progress = load_progress()
+
+                    if old_task_plan and progress and progress.get("current_step_idx", 0) > 0:
+                        old_steps = old_task_plan.get("implementation_steps", [])
+                        new_steps = [s.model_dump() for s in task_plan.implementation_steps]
+                        idx = progress["current_step_idx"]
+                        total = len(task_plan.implementation_steps)
+
+                        # Only resume if same plan and work remaining
+                        if old_steps == new_steps and idx < total:
+                            ui.message(f"[yellow]Previous session stopped at step {idx}/{total}[/yellow]")
+                            if ui.confirm("Continue where you left off?"):
+                                save_json("task_plan.json", task_plan.model_dump())
+                                init_decisions_md()
+                                return {"status": "ARCHITECTING", "resume_from_idx": idx}
+
+                # Fresh start: save new plan and reset progress
+                save_json("task_plan.json", task_plan.model_dump())
+                save_progress(0, [])
+                init_decisions_md()
+                ui.info("Saved to .coderbuddy/")
+
+            except Exception as e:
+                ui.warning(f"Could not save: {e}")
         return {"status": "ARCHITECTING"}
     elif choice == "2":
         ui.message("")
